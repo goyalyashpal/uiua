@@ -1154,7 +1154,7 @@ primitive!(
     /// Here, we negate 5, subtract 2, then negate again.
     /// ex: ⍜¯(-2) 5
     /// You can use [under] with [round] to round to a specific number of decimal places.
-    /// ex: ⍜'×1e3⁅ π
+    /// ex: ⍜⌜×1e3⁅ π
     ///
     /// The above examples involve an *arithmetic* under. That is, [invert]`f` is well-definined independent of [under]'s concept of "undoing".
     /// The remaining examples below involve `f`s which cannot be normally [invert]ed, but which are valid as functions to use with [under].
@@ -1162,21 +1162,21 @@ primitive!(
     /// [under][deshape] will [reshape] the array after `g` finishes.
     /// ex: ⍜♭⇌ .↯3_4⇡12
     /// If you want to insert a value somewhere in the middle of an array, you can use [under], [rotate], and [join].
-    /// ex: ⍜'↻3'⊂π 1_2_3_4_5
+    /// ex: ⍜⌜↻3⌜⊂π 1_2_3_4_5
     /// You can use [under][first] to apply a function to the first row of an array.
-    /// ex: ⍜⊢'×10 1_2_3_4_5
+    /// ex: ⍜⊢⌜×10 1_2_3_4_5
     /// If you need to work on more of the array's rows, can use [under] with [take] or [drop].
-    /// ex: ⍜'↙3'×10 1_2_3_4_5
-    /// ex: ⍜'↘3'×10 1_2_3_4_5
+    /// ex: ⍜⌜↙3⌜×10 1_2_3_4_5
+    /// ex: ⍜⌜↘3⌜×10 1_2_3_4_5
     /// You can chain [under]-compatible functions.
-    /// ex: ⍜(↙2↘1)'×10 1_2_3_4_5
+    /// ex: ⍜(↙2↘1)⌜×10 1_2_3_4_5
     /// [pick] and [select] also work.
-    /// ex: ⍜⊡'×10 2_1 ↯3_3⇡9
-    /// ex: ⍜⊏'×10 1_3 1_2_3_4_5
+    /// ex: ⍜⊡⌜×10 2_1 ↯3_3⇡9
+    /// ex: ⍜⊏⌜×10 1_3 1_2_3_4_5
     /// Although, [under][select] only works if the indices are unique.
-    /// ex! ⍜⊏'×10 1_3_3 1_2_3_4_5
+    /// ex! ⍜⊏⌜×10 1_3_3 1_2_3_4_5
     /// [under][keep] works as long as the counts list is boolean.
-    /// ex: ⍜▽'×10 =0◿3.⇡10
+    /// ex: ⍜▽⌜×10 =0◿3.⇡10
     ///
     /// If `g` takes more than 1 argument, keep in mind that `f` will be called on the stack as it is when the full under expression begins.
     /// This means you may have to flip the arguments to `g`.
@@ -1264,18 +1264,20 @@ primitive!(
     ([2], Fill, OtherModifier, ("fill", '⬚')),
     /// Compose two functions
     ///
+    /// Formats from `'`.
+    ///
     /// This modifier mostly exists for syntactic convenience.
     /// It lets you change any function with 2 terms into a modifer call, saving a single character.
     /// ex: ≡(⇌⊢)↯3_3⇡9
-    ///   : ≡'⇌⊢↯3_3⇡9
+    ///   : ≡⌜⇌⊢↯3_3⇡9
     ///
     /// Because even non-functions can be called like functions, [bind] can, well, *bind* a value to a function.
-    /// ex: f = '+|
+    /// ex: f = ⌜+|
     ///   : f 4
     /// This especially nice when used with modifiers that take 2 functions, like [under], where you can save up to 2 characters!
     /// ex: ⍜(↻3)(⊂π) [1 2 3 4 5]
-    ///   : ⍜'↻3'⊂π [1 2 3 4 5]
-    ([2], Bind, OtherModifier, ("bind", '\'')),
+    ///   : ⍜⌜↻3⌜⊂π [1 2 3 4 5]
+    ([2], Bind, OtherModifier, ("bind", AsciiToken::Quote, '⌜')),
     /// Call one of two functions based on a condition
     ///
     /// If the condition is `1`, then the first function is called, otherwise the second function is called.

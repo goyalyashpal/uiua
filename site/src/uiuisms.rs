@@ -190,13 +190,13 @@ uiuisms!(
     /// Upscale a colored image
     "[[0_0_1 0_1_0] [1_0_0 0_0_0]]\n⍜⍘⍉≡(⍉▽↯⧻,⊙(⍉▽)∶↯⊙.⧻,30)",
     /// Lerp between two values
-    "+⊙'×-. 0 10 0.2",
+    "+⊙⌜×-. 0 10 0.2",
     /// Set the value of an array at an index
     "⍜⊏; 2 1_2_3_4 10",
     /// Dot product
     "/+× [1 2 3] [4 ¯5 6]",
     /// Cross product
-    "-⊙'×⊓'↻2'↻1×⊓'↻1'↻2,, 4_5_6 1_2_3",
+    "-⊙⌜×⊓⌜↻2⌜↻1×⊓⌜↻1⌜↻2,, 4_5_6 1_2_3",
     /// Matrix product
     "[1_2 3_4 5_6] [7_8_9 10_11_12]\n⊠(/+×)⊙⍉",
     /// Matrix power (Also works with scalars)
