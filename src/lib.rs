@@ -11,6 +11,7 @@ mod algorithm;
 pub mod array;
 pub mod ast;
 mod check;
+mod check_type;
 mod compile;
 mod cowslice;
 mod error;

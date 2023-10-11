@@ -365,12 +365,12 @@ impl Primitive {
             Primitive::IndexOf => env.dyadic_rr_env(Value::index_of)?,
             Primitive::Box => {
                 let val = env.pop(1)?;
-                let constant = Function::constant(val);
+                let constant = Function::boxed(val);
                 env.push(constant);
             }
             Primitive::Unbox => {
                 let mut val = env.pop(1)?;
-                if let Some(con) = val.as_function().and_then(|f| f.as_constant()) {
+                if let Some(con) = val.as_function().and_then(|f| f.as_boxed()) {
                     val = con.clone()
                 }
                 env.push(val);
@@ -497,11 +497,11 @@ impl Primitive {
                 let g = env.pop(FunctionArg(2))?;
                 match (f.into_function(), g.into_function()) {
                     (Ok(f), Ok(g)) => env.push(Function::compose(f, g)),
-                    (Ok(f), Err(g)) => env.push(Function::compose(f, Function::constant(g).into())),
-                    (Err(f), Ok(g)) => env.push(Function::compose(Function::constant(f).into(), g)),
+                    (Ok(f), Err(g)) => env.push(Function::compose(f, Function::boxed(g).into())),
+                    (Err(f), Ok(g)) => env.push(Function::compose(Function::boxed(f).into(), g)),
                     (Err(f), Err(g)) => env.push(Function::compose(
-                        Function::constant(f).into(),
-                        Function::constant(g).into(),
+                        Function::boxed(f).into(),
+                        Function::boxed(g).into(),
                     )),
                 }
             }

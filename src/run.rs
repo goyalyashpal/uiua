@@ -378,20 +378,20 @@ code:
                     self.scope.array.push(self.stack.len());
                     Ok(())
                 }
-                &Instr::EndArray { span, constant } => (|| {
+                &Instr::EndArray { span, boxed } => (|| {
                     let start = self.scope.array.pop().unwrap();
                     self.push_span(span, None);
                     let values = self.stack.drain(start..).rev();
-                    let values: Vec<Value> = if constant {
+                    let values: Vec<Value> = if boxed {
                         values
-                            .map(Function::constant)
+                            .map(Function::boxed)
                             .map(Arc::new)
                             .map(Value::from)
                             .collect()
                     } else {
                         values.collect()
                     };
-                    let val = if values.is_empty() && constant {
+                    let val = if values.is_empty() && boxed {
                         Array::<Arc<Function>>::default().into()
                     } else {
                         Value::from_row_values(values, self)?

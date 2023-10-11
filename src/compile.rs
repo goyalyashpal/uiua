@@ -313,10 +313,7 @@ impl Uiua {
                 } else {
                     // Normal case
                     instrs.extend(inner);
-                    self.push_instr(Instr::EndArray {
-                        span,
-                        constant: false,
-                    });
+                    self.push_instr(Instr::EndArray { span, boxed: false });
                 }
             }
             Word::Array(arr) => {
@@ -343,7 +340,7 @@ impl Uiua {
                         if empty {
                             Array::<Arc<Function>>::default().into()
                         } else {
-                            Value::from_row_values(values.map(Function::constant), self)?
+                            Value::from_row_values(values.map(Function::boxed), self)?
                         }
                     } else {
                         Value::from_row_values(values, self)?
@@ -354,7 +351,7 @@ impl Uiua {
                     instrs.extend(inner);
                     self.push_instr(Instr::EndArray {
                         span,
-                        constant: arr.constant,
+                        boxed: arr.constant,
                     });
                     if !call {
                         let instrs = self.new_functions.pop().unwrap();
