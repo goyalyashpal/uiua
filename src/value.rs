@@ -741,7 +741,7 @@ macro_rules! value_un_impl {
             pub fn $name(self, env: &Uiua) -> UiuaResult<Self> {
                 Ok(match self {
                     $($(Self::$in_place(mut array) => {
-                        array.data.par_iter_mut().for_each(|val| *val = $name::$f(*val));
+                        array.data.par_iter_mut().with_min_len(10000).for_each(|val| *val = $name::$f(*val));
                         array.into()
                     },)*)*
                     $($(Self::$make_new(array) => {

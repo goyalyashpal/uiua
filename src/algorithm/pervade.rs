@@ -253,11 +253,13 @@ where
     Ok(())
 }
 
+const MIN_THREAD_LEN: usize = 10000;
+
 pub fn bin_pervade_mut<T>(
     a: &mut Array<T>,
     mut b: Array<T>,
     env: &Uiua,
-    f: impl Fn(T, T) -> T + Clone + Send + Sync,
+    f: impl Fn(T, T) -> T + Send + Sync,
 ) -> UiuaResult
 where
     T: ArrayValue,
@@ -271,19 +273,22 @@ where
         (ash, bsh) if ash == bsh => {
             a.data
                 .par_iter_mut()
-                .zip(b.data.par_iter())
+                .with_min_len(MIN_THREAD_LEN)
+                .zip(b.data.par_iter().with_min_len(MIN_THREAD_LEN))
                 .for_each(|(a, b)| *a = f(a.clone(), b.clone()));
         }
         (_, []) => {
             let b_scalar = &b.data()[0];
             a.data
                 .par_iter_mut()
+                .with_min_len(MIN_THREAD_LEN)
                 .for_each(|a| *a = f(a.clone(), b_scalar.clone()));
         }
         ([], _) => {
             let a_scalar = &a.data()[0];
             b.data
                 .par_iter_mut()
+                .with_min_len(MIN_THREAD_LEN)
                 .for_each(|b| *b = f(a_scalar.clone(), b.clone()));
             *a = b;
         }
@@ -292,7 +297,8 @@ where
                 .data
                 .par_chunks_exact_mut(ash[0])
                 .zip(b.data.par_chunks_exact_mut(bsh[0]))
-                .map(|(a, b)| bin_pervade_recursive_mut(a, &ash[1..], b, &bsh[1..], f.clone()))
+                .with_min_len(MIN_THREAD_LEN)
+                .map(|(a, b)| bin_pervade_recursive_mut(a, &ash[1..], b, &bsh[1..], &f))
                 .reduce(|| true, |a, b| a && b);
             if !use_a {
                 *a = b;
