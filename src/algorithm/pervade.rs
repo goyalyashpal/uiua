@@ -8,6 +8,8 @@ use std::{
     slice::{self, Chunks},
 };
 
+use rayon::prelude::*;
+
 use crate::{array::*, Uiua, UiuaError, UiuaResult};
 
 use super::{max_shape, FillContext};
@@ -84,6 +86,7 @@ pub trait PervasiveFn<A, B> {
 }
 
 #[derive(Clone)]
+#[repr(transparent)]
 pub struct InfalliblePervasiveFn<A, B, C, F>(F, PhantomData<(A, B, C)>);
 
 impl<A, B, C, F> InfalliblePervasiveFn<A, B, C, F> {
@@ -250,38 +253,47 @@ where
     Ok(())
 }
 
-pub fn bin_pervade_mut<T, F>(a: &mut Array<T>, mut b: Array<T>, env: &Uiua, f: F) -> UiuaResult
+pub fn bin_pervade_mut<T>(
+    a: &mut Array<T>,
+    mut b: Array<T>,
+    env: &Uiua,
+    f: impl Fn(T, T) -> T + Clone + Send + Sync,
+) -> UiuaResult
 where
     T: ArrayValue,
-    F: PervasiveFn<T, T, Output = T> + Clone,
-    UiuaError: From<F::Error>,
 {
     fill_shapes(a, &mut b, env)?;
     match (a.shape.as_slice(), b.shape.as_slice()) {
         ([], []) => {
             let a_scalar = &mut a.data[0];
-            *a_scalar = f.call((*a_scalar).clone(), b.data()[0].clone(), env)?;
+            *a_scalar = f((*a_scalar).clone(), b.data()[0].clone());
         }
         (ash, bsh) if ash == bsh => {
-            for (a, b) in a.data.iter_mut().zip(b.data()) {
-                *a = f.call(a.clone(), b.clone(), env)?;
-            }
+            a.data
+                .par_iter_mut()
+                .zip(b.data.par_iter())
+                .for_each(|(a, b)| *a = f(a.clone(), b.clone()));
         }
         (_, []) => {
             let b_scalar = &b.data()[0];
-            for a in &mut a.data {
-                *a = f.call(a.clone(), b_scalar.clone(), env)?;
-            }
+            a.data
+                .par_iter_mut()
+                .for_each(|a| *a = f(a.clone(), b_scalar.clone()));
         }
         ([], _) => {
             let a_scalar = &a.data()[0];
-            for b in &mut b.data {
-                *b = f.call(a_scalar.clone(), b.clone(), env)?;
-            }
+            b.data
+                .par_iter_mut()
+                .for_each(|b| *b = f(a_scalar.clone(), b.clone()));
             *a = b;
         }
         (ash, bsh) => {
-            let use_a = bin_pervade_recursive_mut(&mut a.data, ash, &mut b.data, bsh, env, f)?;
+            let use_a = a
+                .data
+                .par_chunks_exact_mut(ash[0])
+                .zip(b.data.par_chunks_exact_mut(bsh[0]))
+                .map(|(a, b)| bin_pervade_recursive_mut(a, &ash[1..], b, &bsh[1..], f.clone()))
+                .reduce(|| true, |a, b| a && b);
             if !use_a {
                 *a = b;
             }
@@ -290,52 +302,50 @@ where
     Ok(())
 }
 
-fn bin_pervade_recursive_mut<T, F>(
+fn bin_pervade_recursive_mut<T>(
     a_data: &mut [T],
     a_shape: &[usize],
     b_data: &mut [T],
     b_shape: &[usize],
-    env: &Uiua,
-    f: F,
-) -> Result<bool, F::Error>
+    f: impl Fn(T, T) -> T + Clone,
+) -> bool
 where
     T: ArrayValue,
-    F: PervasiveFn<T, T, Output = T> + Clone,
 {
-    Ok(match (a_shape, b_shape) {
+    match (a_shape, b_shape) {
         ([], []) => {
             let a_scalar = &mut a_data[0];
-            *a_scalar = f.call((*a_scalar).clone(), b_data[0].clone(), env)?;
+            *a_scalar = f((*a_scalar).clone(), b_data[0].clone());
             true
         }
         (ash, bsh) if ash == bsh => {
             for (a, b) in a_data.iter_mut().zip(b_data) {
-                *a = f.call(a.clone(), b.clone(), env)?;
+                *a = f(a.clone(), b.clone());
             }
             true
         }
         (_, []) => {
             let b_scalar = &b_data[0];
             for a in a_data {
-                *a = f.call(a.clone(), b_scalar.clone(), env)?;
+                *a = f(a.clone(), b_scalar.clone());
             }
             true
         }
         ([], _) => {
             let a_scalar = &a_data[0];
             for b in b_data {
-                *b = f.call(a_scalar.clone(), b.clone(), env)?;
+                *b = f(a_scalar.clone(), b.clone());
             }
             false
         }
         (ash, bsh) => {
             let mut use_a = true;
             for (a, b) in a_data.chunks_mut(ash[0]).zip(b_data.chunks_mut(bsh[0])) {
-                use_a &= bin_pervade_recursive_mut(a, &ash[1..], b, &bsh[1..], env, f.clone())?;
+                use_a &= bin_pervade_recursive_mut(a, &ash[1..], b, &bsh[1..], f.clone());
             }
             use_a
         }
-    })
+    }
 }
 
 pub mod not {
